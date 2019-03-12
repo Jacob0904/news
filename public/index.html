@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .ke-container{
+            display:inline-block!important;
+            height: 100px;
+        }
+    </style>
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="bootstrap/css/bootstrap-theme.min.css">
+</head>
+<body>
+<div>
+    <form class="form-inline">
+        <fieldset>
+            <legend>XX新闻管理</legend>
+            标题：<input type="text" name="title" autocomplete="off" class="form-control" style="width: 400px">
+            内容：<textarea name="content" id="editor_id" class="text-right"></textarea>
+            <button type="submit" class="btn btn-primary">新增</button>
+        </fieldset>
+    </form>
+</div>
+<div class="container" id="wrap">
+    <table class="table table-striped table-bordered table-hover container">
+        <caption class="caption text-center">新闻管理列表</caption>
+        <thead>
+        <tr>
+            <th>序号</th>
+            <th>标题</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="list">
+        </tbody>
+    </table>
+
+    <!--<div class="alert alert-warning alert-dismissible" role="alert">-->
+        <!--&lt;!&ndash;<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true" onclick="close()">&times;</span></button>&ndash;&gt;-->
+        <!--<strong>新闻内容</strong>-->
+        <!--<div id="txt"></div>-->
+    <!--</div>-->
+
+
+    <!-- 模态框（Modal） -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body" id="txt">
+                    新闻 内容
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                    </button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
+
+</div>
+
+<nav aria-label="Page navigation" class="text-center">
+    <ul class="pagination">
+        <li class="disabled"><a href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
+        <li class="active"><a href="#">1 <span class="sr-only">(current)</span></a></li>
+        <li><a href="#">2</a></li>
+        <li><a href="#">3</a></li>
+        <li><a href="#">4</a></li>
+        <li><a href="#">5</a></li>
+        <li><a href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
+    </ul>
+</nav>
+<!--在线编辑器-->
+<script src="kindeditor/kindeditor-all-min.js"></script>
+<script src="kindeditor/lang/zh-CN.js"></script>
+<script src="js/jquery-1.12.4.js"></script>
+<script src="bootstrap/js/bootstrap.min.js"></script>
+<script>
+    KindEditor.ready(function(K) {
+        window.editor = K.create('#editor_id',{
+            items:[
+                'source', '|', 'undo', 'redo', '|', 'preview', 'print', 'template', 'code', 'cut', 'copy', 'paste',
+                'plainpaste', 'wordpaste', '|', 'justifyleft', 'justifycenter', 'justifyright',
+                'justifyfull', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'subscript',
+                'superscript', 'clearhtml', 'quickformat', 'fullscreen', '/',
+                'formatblock', 'fontname', 'fontsize', '|', 'forecolor', 'hilitecolor', 'bold',
+                'italic', 'underline', 'strikethrough', 'lineheight', 'removeformat', '|', 'image', 'multiimage',
+                'flash', 'media', 'insertfile', 'table', 'hr', 'emoticons', 'baidumap', 'pagebreak',
+                'anchor', 'link', 'unlink'
+            ]
+        });
+    });
+    $(function () {
+        var form=$('form:first');
+        loadData();
+        form.submit(function (e) {
+            e.preventDefault();
+            // 编辑器
+            editor.sync();
+            console.log(form.serializeArray());
+            // 修改新增按钮
+            $.post('/api/news',{
+                type:$('[type="submit"]').html()=='新增'?'add':'edit',
+                data:form.serializeArray(),
+                id:$('[type="submit"]').data('id')
+            },function (result) {
+                alert(result.msg);
+                if(result.flag){
+                    loadData();
+                    form.trigger('reset');
+                    editor.html('');
+                    $('[type="submit"]').html('新增');
+                }
+            })
+        })
+    });
+
+    function del(id) {
+        if(confirm('您确定要删除吗？')){
+            $.get('/api/news?type=del&id='+id,function (result) {
+                alert(result.msg);
+                if(result.flag){
+                    loadData();
+                }
+            })
+        }
+    }
+
+    function edit(id) {
+        $.get('/api/news?type=get&id='+id,function (result) {
+            console.dir(result);
+            // 把表中的字填到表单
+            $('[name="title"]').val(result[0].title);
+            // editor.sync();
+            // $('[name="content"]').html(result[0].content);
+            // $('[name="content"]').val(result[0].content);
+            editor.html(result[0].content);
+            // $('body.ke-content').val(result[0].content);
+            // $('body.ke-content').html(result[0].content);
+            $('[type="submit"]').html('修改').data('id',result[0].id);
+        })
+
+    }
+    function show(id) {
+        var div=$('#txt');
+        $.get('/api/news?type=get&id='+id,function (result) {
+            var txt=result[0].content;
+            div.html(txt);
+        })
+        // var btn = $('#look');
+        // var b;
+        // btn[0].onclick = function () {
+        // }
+    }
+    function loadData() {
+        $.get('/api/news?timestrap='+(new Date()).getTime(),function (result) {
+            // $.get('/api/news',function (result) {
+            $('#list').empty();
+            $(result).each(function (i,data) {
+                $('#list').append(
+                    $('<tr>').append(
+                        $('<td>').html(data.id*1)
+                    ).append(
+                        $('<td>').html(data.title)
+                    ).append(
+                        $('<td>').html('<button class="btn btn-info btn-sm" onclick="edit('+data.id*1+')">修改</button>' +
+                            '<button class="btn btn-warning btn-sm" onclick="del('+data.id*1+')">删除</button>'+
+                            '<button data-toggle="modal" data-target="#myModal" class="btn btn-primary btn-sm" id="look" onclick="show('+data.id*1+')">查看</button>'
+                        )
+                    )
+                )
+            })
+        },'json');
+    }
+</script>
+</body>
+</html>

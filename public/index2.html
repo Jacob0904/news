@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        table{
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th,td{
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <form>
+        <fieldset>
+            <legend>新闻新增</legend>
+            标题：<input type="text" name="title" autocomplete="off">
+            内容：<textarea name="content" id="editor_id"></textarea>
+            <button type="submit">新增</button>
+        </fieldset>
+    </form>
+</div>
+<table>
+    <caption>新闻管理列表</caption>
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>title</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody id="list">
+    </tbody>
+</table>
+<!--在线编辑器-->
+<script src="kindeditor/kindeditor-all-min.js"></script>
+<script src="kindeditor/lang/zh-CN.js"></script>
+<script src="js/jquery-1.12.4.js"></script>
+<script>
+    // KindEditor.ready(function(K) {
+    //     window.editor = K.create('#editor_id',{
+    //         items:[
+    //             'source', '|', 'undo', 'redo', '|', 'preview', 'print', 'template', 'code', 'cut', 'copy', 'paste',
+    //             'plainpaste', 'wordpaste', '|', 'justifyleft', 'justifycenter', 'justifyright',
+    //             'justifyfull', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'subscript',
+    //             'superscript', 'clearhtml', 'quickformat', 'selectall', '|', 'fullscreen', '/',
+    //             'formatblock', 'fontname', 'fontsize', '|', 'forecolor', 'hilitecolor', 'bold',
+    //             'italic', 'underline', 'strikethrough', 'lineheight', 'removeformat', '|', 'image', 'multiimage',
+    //             'flash', 'media', 'insertfile', 'table', 'hr', 'emoticons', 'baidumap', 'pagebreak',
+    //             'anchor', 'link', 'unlink', '|', 'about'
+    //         ]
+    //     });
+    // });
+
+    $(function () {
+        var form=$('form:first');
+        loadData();
+        form.submit(function (e) {
+            // e.preventDefault();
+            // 编辑器
+            // editor.sync();
+            console.log(form.serializeArray());
+            // 修改新增按钮
+            $.get('/api/news',function (result) {
+                alert(result.msg);
+                if(result.flag){
+                    loadData();
+                    form.trigger('reset');
+                    $('[type="submit"]').html('新增');
+                }
+            });
+        })
+    });
+
+    function del(id) {
+        if(confirm('您确定要删除吗？')){
+            $.get('/api/news?type=del&id='+id,function (result) {
+                alert(result.msg);
+                if(result.flag){
+                    loadData();
+                }
+            })
+        }
+    }
+
+    function edit(id) {
+        $.get('/api/news?type=get&id='+id,function (result) {
+            console.dir(result);
+            // 把表中的字填到表单
+            $('[name="title"]').val(result[0].title);
+            $('[name="content"]').val(result[0].content);
+            $('[type="submit"]').html('修改').data('id',result[0].id);
+        })
+    }
+
+    function loadData() {
+        $.get('/api/news?timestrap='+(new Date()).getTime(),function (result) {
+        // $.get('/api/news',function (result) {
+            $('#list').empty();
+            $(result).each(function (i,data) {
+                $('#list').append(
+                    $('<tr>').append(
+                        $('<td>').html(data.id*1)
+                    ).append(
+                        $('<td>').html(data.title)
+                    ).append(
+                        $('<td>').html(data.content)
+                    ).append(
+                        $('<td>').html('<button onclick="edit('+data.id*1+')">修改</button><button onclick="del('+data.id*1+')">删除</button>')
+                    )
+                )
+            })
+        },'json');
+    }
+</script>
+</body>
+</html>
